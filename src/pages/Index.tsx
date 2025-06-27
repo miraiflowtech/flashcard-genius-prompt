@@ -2,22 +2,27 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Brain, Zap, Target } from 'lucide-react';
+import { BookOpen, Brain, Zap, Target, Settings, User, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import FlashcardGenerator from '@/components/FlashcardGenerator';
 import StudyMode from '@/components/StudyMode';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<'home' | 'generate' | 'study'>('home');
   const [flashcards, setFlashcards] = useState([]);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleGeneratedFlashcards = (cards: any[]) => {
     setFlashcards(cards);
     setCurrentView('study');
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
   };
 
   if (currentView === 'generate') {
@@ -43,13 +48,39 @@ const Index = () => {
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm border-b">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-xl">
-              <Brain className="h-6 w-6 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-600 rounded-xl">
+                <Brain className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">AI Flashcard Generator</h1>
+                <p className="text-gray-600">Create intelligent study materials in seconds</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">AI Flashcard Generator</h1>
-              <p className="text-gray-600">Create intelligent study materials in seconds</p>
+            
+            {/* User Menu */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <User className="h-4 w-4" />
+                Welcome back!
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/settings')}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>
