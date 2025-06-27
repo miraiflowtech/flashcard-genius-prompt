@@ -4,8 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Brain, Key, User, Save, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,10 +11,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
 interface UserSettings {
-  openai_api_key: string;
-  anthropic_api_key: string;
   gemini_api_key: string;
-  default_model: string;
 }
 
 interface Profile {
@@ -29,11 +24,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showKeys, setShowKeys] = useState({
-    openai: false,
-    anthropic: false,
-    gemini: false,
-  });
+  const [showKey, setShowKey] = useState(false);
 
   const [profile, setProfile] = useState<Profile>({
     full_name: '',
@@ -41,10 +32,7 @@ const Settings = () => {
   });
 
   const [settings, setSettings] = useState<UserSettings>({
-    openai_api_key: '',
-    anthropic_api_key: '',
     gemini_api_key: '',
-    default_model: 'gpt-3.5-turbo',
   });
 
   useEffect(() => {
@@ -82,10 +70,7 @@ const Settings = () => {
 
       if (settingsData) {
         setSettings({
-          openai_api_key: settingsData.openai_api_key || '',
-          anthropic_api_key: settingsData.anthropic_api_key || '',
           gemini_api_key: settingsData.gemini_api_key || '',
-          default_model: settingsData.default_model || 'gpt-3.5-turbo',
         });
       }
     } catch (error) {
@@ -118,21 +103,29 @@ const Settings = () => {
   };
 
   const handleSaveSettings = async () => {
+    if (!settings.gemini_api_key.trim()) {
+      toast.error('Please enter your Gemini API key');
+      return;
+    }
+
     setSaving(true);
     try {
       const { error } = await supabase
         .from('user_settings')
         .upsert({
           user_id: user?.id,
-          ...settings,
+          gemini_api_key: settings.gemini_api_key,
           updated_at: new Date().toISOString(),
         });
 
       if (error) throw error;
-      toast.success('API settings saved successfully');
+      toast.success('API key saved successfully! You can now generate flashcards.');
+      
+      // Redirect to dashboard after successful save
+      setTimeout(() => navigate('/dashboard'), 1500);
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Failed to save settings');
+      toast.error('Failed to save API key');
     } finally {
       setSaving(false);
     }
@@ -140,11 +133,7 @@ const Settings = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/auth');
-  };
-
-  const toggleKeyVisibility = (keyType: keyof typeof showKeys) => {
-    setShowKeys(prev => ({ ...prev, [keyType]: !prev[keyType] }));
+    navigate('/');
   };
 
   if (loading) {
@@ -164,9 +153,9 @@ const Settings = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/')}>
+            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
+              Back to Dashboard
             </Button>
           </div>
           <div className="flex items-center gap-3">
@@ -175,12 +164,61 @@ const Settings = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-              <p className="text-gray-600">Manage your account and API configurations</p>
+              <p className="text-gray-600">Configure your API key and profile</p>
             </div>
           </div>
         </div>
 
         <div className="grid gap-6">
+          {/* API Configuration - Primary Section */}
+          <Card className="border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                Google Gemini 2.0 Flash API Key
+              </CardTitle>
+              <CardDescription>
+                Configure your Google Gemini API key to generate flashcards. Your key is stored securely and encrypted.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="gemini-key">Gemini API Key *</Label>
+                <div className="relative">
+                  <Input
+                    id="gemini-key"
+                    type={showKey ? 'text' : 'password'}
+                    value={settings.gemini_api_key}
+                    onChange={(e) => setSettings(prev => ({ ...prev, gemini_api_key: e.target.value }))}
+                    placeholder="AIza..."
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => setShowKey(!showKey)}
+                  >
+                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-sm text-blue-700">
+                  Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">Google AI Studio</a>
+                </p>
+              </div>
+
+              <Button 
+                onClick={handleSaveSettings} 
+                disabled={saving || !settings.gemini_api_key.trim()}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {saving ? 'Saving...' : 'Save API Key'}
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Profile Settings */}
           <Card>
             <CardHeader>
@@ -213,125 +251,9 @@ const Settings = () => {
                   />
                 </div>
               </div>
-              <Button onClick={handleSaveProfile} disabled={saving}>
+              <Button onClick={handleSaveProfile} disabled={saving} variant="outline">
                 <Save className="h-4 w-4 mr-2" />
                 {saving ? 'Saving...' : 'Save Profile'}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* API Configuration */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Key className="h-5 w-5" />
-                LLM API Configuration
-              </CardTitle>
-              <CardDescription>
-                Configure your API keys for different language models. These are stored securely and encrypted.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* OpenAI API Key */}
-              <div className="space-y-2">
-                <Label htmlFor="openai-key">OpenAI API Key</Label>
-                <div className="relative">
-                  <Input
-                    id="openai-key"
-                    type={showKeys.openai ? 'text' : 'password'}
-                    value={settings.openai_api_key}
-                    onChange={(e) => setSettings(prev => ({ ...prev, openai_api_key: e.target.value }))}
-                    placeholder="sk-..."
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3"
-                    onClick={() => toggleKeyVisibility('openai')}
-                  >
-                    {showKeys.openai ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Anthropic API Key */}
-              <div className="space-y-2">
-                <Label htmlFor="anthropic-key">Anthropic API Key</Label>
-                <div className="relative">
-                  <Input
-                    id="anthropic-key"
-                    type={showKeys.anthropic ? 'text' : 'password'}
-                    value={settings.anthropic_api_key}
-                    onChange={(e) => setSettings(prev => ({ ...prev, anthropic_api_key: e.target.value }))}
-                    placeholder="sk-ant-..."
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3"
-                    onClick={() => toggleKeyVisibility('anthropic')}
-                  >
-                    {showKeys.anthropic ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Gemini API Key */}
-              <div className="space-y-2">
-                <Label htmlFor="gemini-key">Google Gemini API Key</Label>
-                <div className="relative">
-                  <Input
-                    id="gemini-key"
-                    type={showKeys.gemini ? 'text' : 'password'}
-                    value={settings.gemini_api_key}
-                    onChange={(e) => setSettings(prev => ({ ...prev, gemini_api_key: e.target.value }))}
-                    placeholder="AIza..."
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3"
-                    onClick={() => toggleKeyVisibility('gemini')}
-                  >
-                    {showKeys.gemini ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Default Model */}
-              <div className="space-y-2">
-                <Label htmlFor="default-model">Default Model</Label>
-                <Select
-                  value={settings.default_model}
-                  onValueChange={(value) => setSettings(prev => ({ ...prev, default_model: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select default model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                    <SelectItem value="gpt-4">GPT-4</SelectItem>
-                    <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                    <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
-                    <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
-                    <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
-                    <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
-                    <SelectItem value="gemini-pro-vision">Gemini Pro Vision</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button onClick={handleSaveSettings} disabled={saving}>
-                <Save className="h-4 w-4 mr-2" />
-                {saving ? 'Saving...' : 'Save API Settings'}
               </Button>
             </CardContent>
           </Card>
