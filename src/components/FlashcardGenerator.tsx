@@ -10,9 +10,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+interface GermanFlashcard {
+  id: string;
+  german_word: string;
+  english_meaning: string;
+  example_sentence: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
 interface FlashcardGeneratorProps {
   onBack: () => void;
-  onFlashcardsGenerated: (flashcards: any[]) => void;
+  onFlashcardsGenerated: (flashcards: GermanFlashcard[]) => void;
 }
 
 const FlashcardGenerator: React.FC<FlashcardGeneratorProps> = ({ onBack, onFlashcardsGenerated }) => {
@@ -42,9 +50,47 @@ const FlashcardGenerator: React.FC<FlashcardGeneratorProps> = ({ onBack, onFlash
     }
   };
 
+  const saveFlashcardSession = async (flashcards: GermanFlashcard[], sessionTopic: string) => {
+    try {
+      // Create session record
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('flashcard_sessions')
+        .insert({
+          user_id: user?.id,
+          topic: sessionTopic,
+          difficulty: difficulty,
+          flashcard_count: flashcards.length
+        })
+        .select()
+        .single();
+
+      if (sessionError) throw sessionError;
+
+      // Save individual flashcards
+      const flashcardInserts = flashcards.map(card => ({
+        session_id: sessionData.id,
+        german_word: card.german_word,
+        english_meaning: card.english_meaning,
+        example_sentence: card.example_sentence,
+        difficulty: card.difficulty
+      }));
+
+      const { error: flashcardsError } = await supabase
+        .from('session_flashcards')
+        .insert(flashcardInserts);
+
+      if (flashcardsError) throw flashcardsError;
+
+      console.log('Session saved successfully:', sessionData.id);
+    } catch (error) {
+      console.error('Error saving session:', error);
+      toast.error('Failed to save session, but flashcards are still available for study');
+    }
+  };
+
   const generateFlashcards = async () => {
     if (!topic.trim()) {
-      toast.error('Please enter a topic to generate flashcards for.');
+      toast.error('Please enter a topic to generate German vocabulary for.');
       return;
     }
 
@@ -56,14 +102,14 @@ const FlashcardGenerator: React.FC<FlashcardGeneratorProps> = ({ onBack, onFlash
     setIsGenerating(true);
 
     try {
-      const systemPrompt = `You are an expert educational content creator specializing in generating high-quality flashcards for effective learning. Your task is to create flashcards that follow best practices in cognitive science and spaced repetition learning.
+      const systemPrompt = `You are a German language teacher creating vocabulary flashcards. Generate single German words related to the given topic with English meanings and German example sentences.
 
 CORE PRINCIPLES:
-- Use active recall techniques
-- Create clear, concise questions
-- Ensure answers are specific and accurate
-- Apply the minimum information principle (one concept per card)
-- Use varied question formats to enhance retention
+- Generate ONLY single German words (not phrases or compound explanations)
+- Provide clear English meanings
+- Include one German example sentence showing the word in context
+- Focus on commonly used vocabulary
+- Ensure difficulty level matches the request
 
 OUTPUT FORMAT:
 Always respond with valid JSON in this exact structure:
@@ -71,24 +117,24 @@ Always respond with valid JSON in this exact structure:
   "flashcards": [
     {
       "id": "unique_id",
-      "front": "Question or prompt",
-      "back": "Answer or explanation",
-      "difficulty": "easy|medium|hard",
-      "tags": ["tag1", "tag2"],
-      "category": "subject_category"
+      "german_word": "single German word",
+      "english_meaning": "English translation/meaning",
+      "example_sentence": "German sentence using the word",
+      "difficulty": "easy|medium|hard"
     }
   ]
 }`;
 
-      const userPrompt = `Generate ${count} flashcards about ${topic}.
+      const userPrompt = `Generate ${count} German vocabulary flashcards about ${topic}.
 
 Requirements:
-- Subject: ${topic}
+- Topic: ${topic}
 - Difficulty Level: ${difficulty}
-- Question Types: mix of definitions, explanations, and applications
-- Ensure comprehensive coverage of key concepts
+- Single German words only (no phrases)
+- Clear English meanings
+- German example sentences
 
-Please ensure the flashcards follow spaced repetition best practices and cover the topic thoroughly.`;
+Focus on the most useful and common German words related to ${topic}.`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`, {
         method: 'POST',
@@ -134,9 +180,13 @@ Please ensure the flashcards follow spaced repetition best practices and cover t
       }
 
       if (parsedData.flashcards && Array.isArray(parsedData.flashcards)) {
-        console.log('Generated flashcards:', parsedData.flashcards);
+        console.log('Generated German flashcards:', parsedData.flashcards);
+        
+        // Save session to database
+        await saveFlashcardSession(parsedData.flashcards, topic);
+        
         onFlashcardsGenerated(parsedData.flashcards);
-        toast.success(`Successfully created ${parsedData.flashcards.length} flashcards for ${topic}!`);
+        toast.success(`Successfully created ${parsedData.flashcards.length} German vocabulary flashcards for ${topic}!`);
       } else {
         throw new Error('Invalid response format from API');
       }
@@ -160,7 +210,7 @@ Please ensure the flashcards follow spaced repetition best practices and cover t
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">Generate Flashcards</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Generate German Vocabulary</h1>
           <p className="text-gray-600">Powered by Google Gemini 2.0 Flash</p>
         </div>
       </div>
@@ -171,10 +221,10 @@ Please ensure the flashcards follow spaced repetition best practices and cover t
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-blue-600" />
-                Flashcard Configuration
+                German Vocabulary Generator
               </CardTitle>
               <CardDescription>
-                Customize your learning experience with AI-generated flashcards
+                Generate German words with English meanings and example sentences
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -185,7 +235,7 @@ Please ensure the flashcards follow spaced repetition best practices and cover t
                 </Label>
                 <Input
                   id="topic"
-                  placeholder="e.g., Photosynthesis, JavaScript Promises, World War II"
+                  placeholder="e.g., Food, Travel, Animals, Family, Technology"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   className="w-full"
@@ -196,18 +246,18 @@ Please ensure the flashcards follow spaced repetition best practices and cover t
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="count" className="text-sm font-medium">
-                    Number of Cards
+                    Number of Words
                   </Label>
                   <Select value={count} onValueChange={setCount}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="5">5 cards</SelectItem>
-                      <SelectItem value="10">10 cards</SelectItem>
-                      <SelectItem value="15">15 cards</SelectItem>
-                      <SelectItem value="20">20 cards</SelectItem>
-                      <SelectItem value="25">25 cards</SelectItem>
+                      <SelectItem value="5">5 words</SelectItem>
+                      <SelectItem value="10">10 words</SelectItem>
+                      <SelectItem value="15">15 words</SelectItem>
+                      <SelectItem value="20">20 words</SelectItem>
+                      <SelectItem value="25">25 words</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -238,12 +288,12 @@ Please ensure the flashcards follow spaced repetition best practices and cover t
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Generating Flashcards...
+                    Generating German Vocabulary...
                   </>
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-5 w-5" />
-                    Generate Flashcards with Gemini 2.0 Flash
+                    Generate German Vocabulary
                   </>
                 )}
               </Button>

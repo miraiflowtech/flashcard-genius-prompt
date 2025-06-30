@@ -2,21 +2,21 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Settings, User, LogOut, AlertCircle } from 'lucide-react';
+import { Brain, Settings, User, LogOut, AlertCircle, History } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import FlashcardGenerator from '@/components/FlashcardGenerator';
 import StudyMode from '@/components/StudyMode';
+import SessionHistory from '@/components/SessionHistory';
 
-interface Flashcard {
+interface GermanFlashcard {
   id: string;
-  front: string;
-  back: string;
+  german_word: string;
+  english_meaning: string;
+  example_sentence: string;
   difficulty: 'easy' | 'medium' | 'hard';
-  tags: string[];
-  category: string;
 }
 
 const Dashboard = () => {
@@ -24,7 +24,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showGenerator, setShowGenerator] = useState(false);
   const [showStudyMode, setShowStudyMode] = useState(false);
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [flashcards, setFlashcards] = useState<GermanFlashcard[]>([]);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -57,10 +58,16 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  const handleFlashcardsGenerated = (generatedFlashcards: Flashcard[]) => {
-    console.log('Flashcards generated:', generatedFlashcards);
+  const handleFlashcardsGenerated = (generatedFlashcards: GermanFlashcard[]) => {
+    console.log('German flashcards generated:', generatedFlashcards);
     setFlashcards(generatedFlashcards);
     setShowGenerator(false);
+    setShowStudyMode(true);
+  };
+
+  const handleLoadSession = (sessionFlashcards: GermanFlashcard[]) => {
+    setFlashcards(sessionFlashcards);
+    setShowHistory(false);
     setShowStudyMode(true);
   };
 
@@ -71,6 +78,10 @@ const Dashboard = () => {
 
   const handleBackFromGenerator = () => {
     setShowGenerator(false);
+  };
+
+  const handleBackFromHistory = () => {
+    setShowHistory(false);
   };
 
   if (loading) {
@@ -102,6 +113,15 @@ const Dashboard = () => {
     );
   }
 
+  if (showHistory) {
+    return (
+      <SessionHistory
+        onBack={handleBackFromHistory}
+        onLoadSession={handleLoadSession}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Header */}
@@ -113,8 +133,8 @@ const Dashboard = () => {
                 <Brain className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">AI Flashcard Generator</h1>
-                <p className="text-gray-600">Create intelligent study materials with Google Gemini</p>
+                <h1 className="text-2xl font-bold text-gray-900">German Vocabulary Generator</h1>
+                <p className="text-gray-600">Learn German words with AI-powered flashcards</p>
               </div>
             </div>
             
@@ -155,7 +175,7 @@ const Dashboard = () => {
                   <div>
                     <CardTitle className="text-orange-900">Setup Required</CardTitle>
                     <CardDescription className="text-orange-700">
-                      Configure your Google Gemini API key to start generating flashcards
+                      Configure your Google Gemini API key to start generating German vocabulary
                     </CardDescription>
                   </div>
                 </div>
@@ -163,7 +183,7 @@ const Dashboard = () => {
               <CardContent>
                 <p className="text-orange-800 mb-4">
                   To use this application, you need to configure your Google Gemini 2.0 Flash API key. 
-                  This will be securely stored and used to generate your flashcards.
+                  This will be securely stored and used to generate your German vocabulary flashcards.
                 </p>
                 <Button 
                   onClick={() => navigate('/settings')}
@@ -180,31 +200,53 @@ const Dashboard = () => {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Generate Your Flashcards
+                Learn German Vocabulary
               </h2>
               <p className="text-xl text-gray-600">
-                Enter any topic and let Google Gemini 2.0 Flash create personalized study materials
+                Generate German words with meanings and example sentences using AI
               </p>
             </div>
 
-            <Card className="shadow-xl border-0">
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Ready to Start Learning?</CardTitle>
-                <CardDescription className="text-lg">
-                  Click below to access the flashcard generator
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-center">
-                <Button 
-                  onClick={() => setShowGenerator(true)}
-                  size="lg"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg rounded-xl"
-                >
-                  <Brain className="mr-2 h-5 w-5" />
-                  Generate Flashcards
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="shadow-xl border-0">
+                <CardHeader className="text-center">
+                  <CardTitle className="text-xl">Generate New Vocabulary</CardTitle>
+                  <CardDescription>
+                    Create German vocabulary flashcards on any topic
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <Button 
+                    onClick={() => setShowGenerator(true)}
+                    size="lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-lg rounded-xl w-full"
+                  >
+                    <Brain className="mr-2 h-5 w-5" />
+                    Generate Vocabulary
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-xl border-0">
+                <CardHeader className="text-center">
+                  <CardTitle className="text-xl">Session History</CardTitle>
+                  <CardDescription>
+                    Review your last 10 vocabulary sessions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <Button 
+                    onClick={() => setShowHistory(true)}
+                    size="lg"
+                    variant="outline"
+                    className="px-6 py-3 text-lg rounded-xl w-full"
+                  >
+                    <History className="mr-2 h-5 w-5" />
+                    View History
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
       </div>

@@ -7,17 +7,16 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, RotateCcw, Check, X, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface Flashcard {
+interface GermanFlashcard {
   id: string;
-  front: string;
-  back: string;
+  german_word: string;
+  english_meaning: string;
+  example_sentence: string;
   difficulty: 'easy' | 'medium' | 'hard';
-  tags: string[];
-  category: string;
 }
 
 interface StudyModeProps {
-  flashcards: Flashcard[];
+  flashcards: GermanFlashcard[];
   onBack: () => void;
 }
 
@@ -26,7 +25,6 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [incorrectAnswers, setIncorrectAnswers] = useState(0);
-  const [studyMode, setStudyMode] = useState<'study' | 'review'>('study');
   const { toast } = useToast();
 
   const currentCard = flashcards[currentIndex];
@@ -72,7 +70,7 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
     const dataStr = JSON.stringify(flashcards, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    const exportFileDefaultName = `flashcards-${Date.now()}.json`;
+    const exportFileDefaultName = `german-vocabulary-${Date.now()}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
@@ -80,8 +78,8 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
     linkElement.click();
     
     toast({
-      title: "Flashcards Exported",
-      description: "Your flashcards have been downloaded as a JSON file.",
+      title: "Vocabulary Exported",
+      description: "Your German vocabulary has been downloaded as a JSON file.",
     });
   };
 
@@ -103,12 +101,12 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
             <div className="flex items-center gap-4">
               <Button variant="ghost" onClick={onBack}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Home
+                Back to Dashboard
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Study Mode</h1>
+                <h1 className="text-xl font-bold text-gray-900">German Vocabulary Study</h1>
                 <p className="text-sm text-gray-600">
-                  Card {currentIndex + 1} of {totalCards}
+                  Word {currentIndex + 1} of {totalCards}
                 </p>
               </div>
             </div>
@@ -165,7 +163,7 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
             onClick={handleFlip}
           >
             <div className={`relative w-full h-full transition-transform duration-500 transform-style-preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-              {/* Front of card */}
+              {/* Front of card - German word */}
               <Card className="absolute inset-0 backface-hidden shadow-2xl border-0 bg-gradient-to-br from-white to-blue-50">
                 <CardContent className="h-full flex flex-col justify-between p-8">
                   <div className="flex items-start justify-between mb-4">
@@ -173,34 +171,33 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
                       {currentCard.difficulty}
                     </Badge>
                     <div className="text-sm text-gray-500">
-                      Click to reveal answer
+                      Click to see meaning
                     </div>
                   </div>
                   
                   <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
-                      <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
-                        {currentCard.front}
+                      <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                        {currentCard.german_word}
                       </h2>
+                      <p className="text-lg text-gray-600">German Word</p>
                     </div>
                   </div>
                   
-                  <div className="flex flex-wrap gap-2">
-                    {currentCard.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
+                  <div className="text-center">
+                    <Badge variant="secondary" className="text-xs">
+                      Deutsch
+                    </Badge>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Back of card */}
+              {/* Back of card - English meaning and German sentence */}
               <Card className="absolute inset-0 backface-hidden rotate-y-180 shadow-2xl border-0 bg-gradient-to-br from-white to-green-50">
                 <CardContent className="h-full flex flex-col justify-between p-8">
                   <div className="flex items-start justify-between mb-4">
                     <Badge className="bg-green-100 text-green-700 border-green-200">
-                      Answer
+                      Translation
                     </Badge>
                     <div className="text-sm text-gray-500">
                       How did you do?
@@ -208,10 +205,20 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
                   </div>
                   
                   <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center">
-                      <p className="text-lg md:text-xl text-gray-900 leading-relaxed">
-                        {currentCard.back}
-                      </p>
+                    <div className="text-center space-y-6">
+                      <div>
+                        <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                          {currentCard.english_meaning}
+                        </h3>
+                        <p className="text-sm text-gray-600">English Meaning</p>
+                      </div>
+                      
+                      <div className="border-t pt-6">
+                        <p className="text-lg md:text-xl text-gray-800 leading-relaxed italic">
+                          "{currentCard.example_sentence}"
+                        </p>
+                        <p className="text-sm text-gray-600 mt-2">German Example</p>
+                      </div>
                     </div>
                   </div>
                   
@@ -257,7 +264,7 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
 
             <div className="text-center">
               <p className="text-lg font-semibold text-gray-900">
-                {currentCard.category}
+                German Vocabulary
               </p>
               <p className="text-sm text-gray-500">
                 {currentIndex + 1} of {totalCards}
@@ -279,10 +286,10 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
           {currentIndex === totalCards - 1 && isFlipped && (
             <div className="mt-8 text-center p-6 bg-blue-50 rounded-xl">
               <h3 className="text-xl font-bold text-gray-900 mb-2">
-                🎉 Study Session Complete!
+                🎉 Vocabulary Session Complete!
               </h3>
               <p className="text-gray-600 mb-4">
-                You've reviewed all {totalCards} flashcards. 
+                You've reviewed all {totalCards} German words. 
                 Correct: {correctAnswers}, Incorrect: {incorrectAnswers}
               </p>
               <div className="flex gap-4 justify-center">
@@ -291,7 +298,7 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
                   Study Again
                 </Button>
                 <Button onClick={onBack} className="bg-blue-600 hover:bg-blue-700">
-                  Generate New Set
+                  Generate New Vocabulary
                 </Button>
               </div>
             </div>

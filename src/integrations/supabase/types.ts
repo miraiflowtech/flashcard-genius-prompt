@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      flashcard_sessions: {
+        Row: {
+          created_at: string
+          difficulty: string
+          flashcard_count: number
+          id: string
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          difficulty: string
+          flashcard_count?: number
+          id?: string
+          topic: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          difficulty?: string
+          flashcard_count?: number
+          id?: string
+          topic?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -32,6 +59,44 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      session_flashcards: {
+        Row: {
+          created_at: string
+          difficulty: string
+          english_meaning: string
+          example_sentence: string
+          german_word: string
+          id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          difficulty: string
+          english_meaning: string
+          example_sentence: string
+          german_word: string
+          id?: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          difficulty?: string
+          english_meaning?: string
+          example_sentence?: string
+          german_word?: string
+          id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_flashcards_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "flashcard_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_settings: {
         Row: {
