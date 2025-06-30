@@ -7,16 +7,16 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, RotateCcw, Check, X, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface GermanFlashcard {
+interface Flashcard {
   id: string;
-  german_word: string;
-  english_meaning: string;
-  example_sentence: string;
+  front: string;
+  back: string;
+  additional_info: string;
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
 interface StudyModeProps {
-  flashcards: GermanFlashcard[];
+  flashcards: Flashcard[];
   onBack: () => void;
 }
 
@@ -70,7 +70,7 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
     const dataStr = JSON.stringify(flashcards, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    const exportFileDefaultName = `german-vocabulary-${Date.now()}.json`;
+    const exportFileDefaultName = `flashcards-${Date.now()}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
@@ -78,8 +78,8 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
     linkElement.click();
     
     toast({
-      title: "Vocabulary Exported",
-      description: "Your German vocabulary has been downloaded as a JSON file.",
+      title: "Flashcards Exported",
+      description: "Your flashcards have been downloaded as a JSON file.",
     });
   };
 
@@ -104,9 +104,9 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
                 Back to Dashboard
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">German Vocabulary Study</h1>
+                <h1 className="text-xl font-bold text-gray-900">Study Mode</h1>
                 <p className="text-sm text-gray-600">
-                  Word {currentIndex + 1} of {totalCards}
+                  Card {currentIndex + 1} of {totalCards}
                 </p>
               </div>
             </div>
@@ -163,7 +163,7 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
             onClick={handleFlip}
           >
             <div className={`relative w-full h-full transition-transform duration-500 transform-style-preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-              {/* Front of card - German word */}
+              {/* Front of card */}
               <Card className="absolute inset-0 backface-hidden shadow-2xl border-0 bg-gradient-to-br from-white to-blue-50">
                 <CardContent className="h-full flex flex-col justify-between p-8">
                   <div className="flex items-start justify-between mb-4">
@@ -171,33 +171,33 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
                       {currentCard.difficulty}
                     </Badge>
                     <div className="text-sm text-gray-500">
-                      Click to see meaning
+                      Click to reveal answer
                     </div>
                   </div>
                   
                   <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
-                      <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-                        {currentCard.german_word}
+                      <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                        {currentCard.front}
                       </h2>
-                      <p className="text-lg text-gray-600">German Word</p>
+                      <p className="text-lg text-gray-600">Question/Term</p>
                     </div>
                   </div>
                   
                   <div className="text-center">
                     <Badge variant="secondary" className="text-xs">
-                      Deutsch
+                      Front
                     </Badge>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Back of card - English meaning and German sentence */}
+              {/* Back of card */}
               <Card className="absolute inset-0 backface-hidden rotate-y-180 shadow-2xl border-0 bg-gradient-to-br from-white to-green-50">
                 <CardContent className="h-full flex flex-col justify-between p-8">
                   <div className="flex items-start justify-between mb-4">
                     <Badge className="bg-green-100 text-green-700 border-green-200">
-                      Translation
+                      Answer
                     </Badge>
                     <div className="text-sm text-gray-500">
                       How did you do?
@@ -208,17 +208,19 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
                     <div className="text-center space-y-6">
                       <div>
                         <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                          {currentCard.english_meaning}
+                          {currentCard.back}
                         </h3>
-                        <p className="text-sm text-gray-600">English Meaning</p>
+                        <p className="text-sm text-gray-600">Answer/Definition</p>
                       </div>
                       
-                      <div className="border-t pt-6">
-                        <p className="text-lg md:text-xl text-gray-800 leading-relaxed italic">
-                          "{currentCard.example_sentence}"
-                        </p>
-                        <p className="text-sm text-gray-600 mt-2">German Example</p>
-                      </div>
+                      {currentCard.additional_info && (
+                        <div className="border-t pt-6">
+                          <p className="text-lg md:text-xl text-gray-800 leading-relaxed italic">
+                            {currentCard.additional_info}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-2">Additional Information</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -264,7 +266,7 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
 
             <div className="text-center">
               <p className="text-lg font-semibold text-gray-900">
-                German Vocabulary
+                Study Session
               </p>
               <p className="text-sm text-gray-500">
                 {currentIndex + 1} of {totalCards}
@@ -286,10 +288,10 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
           {currentIndex === totalCards - 1 && isFlipped && (
             <div className="mt-8 text-center p-6 bg-blue-50 rounded-xl">
               <h3 className="text-xl font-bold text-gray-900 mb-2">
-                🎉 Vocabulary Session Complete!
+                🎉 Study Session Complete!
               </h3>
               <p className="text-gray-600 mb-4">
-                You've reviewed all {totalCards} German words. 
+                You've reviewed all {totalCards} flashcards. 
                 Correct: {correctAnswers}, Incorrect: {incorrectAnswers}
               </p>
               <div className="flex gap-4 justify-center">
@@ -298,7 +300,7 @@ const StudyMode: React.FC<StudyModeProps> = ({ flashcards, onBack }) => {
                   Study Again
                 </Button>
                 <Button onClick={onBack} className="bg-blue-600 hover:bg-blue-700">
-                  Generate New Vocabulary
+                  Generate New Flashcards
                 </Button>
               </div>
             </div>

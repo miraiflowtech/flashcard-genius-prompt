@@ -16,17 +16,17 @@ interface FlashcardSession {
   created_at: string;
 }
 
-interface GermanFlashcard {
+interface Flashcard {
   id: string;
-  german_word: string;
-  english_meaning: string;
-  example_sentence: string;
+  front: string;
+  back: string;
+  additional_info: string;
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
 interface SessionHistoryProps {
   onBack: () => void;
-  onLoadSession: (flashcards: GermanFlashcard[]) => void;
+  onLoadSession: (flashcards: Flashcard[]) => void;
 }
 
 const SessionHistory: React.FC<SessionHistoryProps> = ({ onBack, onLoadSession }) => {
@@ -67,11 +67,11 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ onBack, onLoadSession }
 
       if (error) throw error;
 
-      const flashcards: GermanFlashcard[] = data.map(card => ({
+      const flashcards: Flashcard[] = data.map(card => ({
         id: card.id,
-        german_word: card.german_word,
-        english_meaning: card.english_meaning,
-        example_sentence: card.example_sentence,
+        front: card.german_word,
+        back: card.english_meaning,
+        additional_info: card.example_sentence,
         difficulty: card.difficulty as 'easy' | 'medium' | 'hard'
       }));
 
@@ -173,7 +173,7 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ onBack, onLoadSession }
                           </span>
                           <span className="flex items-center gap-1">
                             <BookOpen className="h-4 w-4" />
-                            {session.flashcard_count} words
+                            {session.flashcard_count} cards
                           </span>
                         </CardDescription>
                       </div>

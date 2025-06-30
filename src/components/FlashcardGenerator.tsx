@@ -10,17 +10,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface GermanFlashcard {
+interface Flashcard {
   id: string;
-  german_word: string;
-  english_meaning: string;
-  example_sentence: string;
+  front: string;
+  back: string;
+  additional_info: string;
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
 interface FlashcardGeneratorProps {
   onBack: () => void;
-  onFlashcardsGenerated: (flashcards: GermanFlashcard[]) => void;
+  onFlashcardsGenerated: (flashcards: Flashcard[]) => void;
 }
 
 const FlashcardGenerator: React.FC<FlashcardGeneratorProps> = ({ onBack, onFlashcardsGenerated }) => {
@@ -50,7 +50,7 @@ const FlashcardGenerator: React.FC<FlashcardGeneratorProps> = ({ onBack, onFlash
     }
   };
 
-  const saveFlashcardSession = async (flashcards: GermanFlashcard[], sessionTopic: string) => {
+  const saveFlashcardSession = async (flashcards: Flashcard[], sessionTopic: string) => {
     try {
       // Create session record
       const { data: sessionData, error: sessionError } = await supabase
@@ -69,9 +69,9 @@ const FlashcardGenerator: React.FC<FlashcardGeneratorProps> = ({ onBack, onFlash
       // Save individual flashcards
       const flashcardInserts = flashcards.map(card => ({
         session_id: sessionData.id,
-        german_word: card.german_word,
-        english_meaning: card.english_meaning,
-        example_sentence: card.example_sentence,
+        german_word: card.front,
+        english_meaning: card.back,
+        example_sentence: card.additional_info,
         difficulty: card.difficulty
       }));
 
@@ -90,7 +90,7 @@ const FlashcardGenerator: React.FC<FlashcardGeneratorProps> = ({ onBack, onFlash
 
   const generateFlashcards = async () => {
     if (!topic.trim()) {
-      toast.error('Please enter a topic to generate German vocabulary for.');
+      toast.error('Please enter a topic to generate flashcards for.');
       return;
     }
 
@@ -102,14 +102,15 @@ const FlashcardGenerator: React.FC<FlashcardGeneratorProps> = ({ onBack, onFlash
     setIsGenerating(true);
 
     try {
-      const systemPrompt = `You are a German language teacher creating vocabulary flashcards. Generate single German words related to the given topic with English meanings and German example sentences.
+      const systemPrompt = `You are an educational content creator that creates flashcards for learning any topic. Generate flashcards with clear front/back content and additional information to help with learning.
 
 CORE PRINCIPLES:
-- Generate ONLY single German words (not phrases or compound explanations)
-- Provide clear English meanings
-- Include one German example sentence showing the word in context
-- Focus on commonly used vocabulary
+- Create clear, concise flashcards appropriate for the topic
+- Front should contain the question/term/concept
+- Back should contain the answer/definition/explanation
+- Additional info should provide context, examples, or helpful details
 - Ensure difficulty level matches the request
+- Focus on the most important and useful information for the topic
 
 OUTPUT FORMAT:
 Always respond with valid JSON in this exact structure:
@@ -117,24 +118,23 @@ Always respond with valid JSON in this exact structure:
   "flashcards": [
     {
       "id": "unique_id",
-      "german_word": "single German word",
-      "english_meaning": "English translation/meaning",
-      "example_sentence": "German sentence using the word",
+      "front": "question/term/concept",
+      "back": "answer/definition/explanation",
+      "additional_info": "context, examples, or helpful details",
       "difficulty": "easy|medium|hard"
     }
   ]
 }`;
 
-      const userPrompt = `Generate ${count} German vocabulary flashcards about ${topic}.
+      const userPrompt = `Generate ${count} flashcards about ${topic}.
 
 Requirements:
 - Topic: ${topic}
 - Difficulty Level: ${difficulty}
-- Single German words only (no phrases)
-- Clear English meanings
-- German example sentences
+- Create educational flashcards suitable for learning
+- Include clear front/back content and helpful additional information
 
-Focus on the most useful and common German words related to ${topic}.`;
+Focus on the most important concepts and information related to ${topic}.`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`, {
         method: 'POST',
@@ -180,13 +180,13 @@ Focus on the most useful and common German words related to ${topic}.`;
       }
 
       if (parsedData.flashcards && Array.isArray(parsedData.flashcards)) {
-        console.log('Generated German flashcards:', parsedData.flashcards);
+        console.log('Generated flashcards:', parsedData.flashcards);
         
         // Save session to database
         await saveFlashcardSession(parsedData.flashcards, topic);
         
         onFlashcardsGenerated(parsedData.flashcards);
-        toast.success(`Successfully created ${parsedData.flashcards.length} German vocabulary flashcards for ${topic}!`);
+        toast.success(`Successfully created ${parsedData.flashcards.length} flashcards for ${topic}!`);
       } else {
         throw new Error('Invalid response format from API');
       }
@@ -210,7 +210,7 @@ Focus on the most useful and common German words related to ${topic}.`;
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">Generate German Vocabulary</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Generate Flashcards</h1>
           <p className="text-gray-600">Powered by Google Gemini 2.0 Flash</p>
         </div>
       </div>
@@ -221,10 +221,10 @@ Focus on the most useful and common German words related to ${topic}.`;
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-blue-600" />
-                German Vocabulary Generator
+                Flashcard Generator
               </CardTitle>
               <CardDescription>
-                Generate German words with English meanings and example sentences
+                Generate educational flashcards on any topic
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -235,7 +235,7 @@ Focus on the most useful and common German words related to ${topic}.`;
                 </Label>
                 <Input
                   id="topic"
-                  placeholder="e.g., Food, Travel, Animals, Family, Technology"
+                  placeholder="e.g., Math formulas, History facts, Science concepts, German vocabulary"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   className="w-full"
@@ -246,18 +246,18 @@ Focus on the most useful and common German words related to ${topic}.`;
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="count" className="text-sm font-medium">
-                    Number of Words
+                    Number of Cards
                   </Label>
                   <Select value={count} onValueChange={setCount}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="5">5 words</SelectItem>
-                      <SelectItem value="10">10 words</SelectItem>
-                      <SelectItem value="15">15 words</SelectItem>
-                      <SelectItem value="20">20 words</SelectItem>
-                      <SelectItem value="25">25 words</SelectItem>
+                      <SelectItem value="5">5 cards</SelectItem>
+                      <SelectItem value="10">10 cards</SelectItem>
+                      <SelectItem value="15">15 cards</SelectItem>
+                      <SelectItem value="20">20 cards</SelectItem>
+                      <SelectItem value="25">25 cards</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -288,12 +288,12 @@ Focus on the most useful and common German words related to ${topic}.`;
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Generating German Vocabulary...
+                    Generating Flashcards...
                   </>
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-5 w-5" />
-                    Generate German Vocabulary
+                    Generate Flashcards
                   </>
                 )}
               </Button>
