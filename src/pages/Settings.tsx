@@ -43,6 +43,8 @@ const Settings = () => {
 
   const fetchUserData = async () => {
     try {
+      console.log('Fetching user data for user ID:', user?.id);
+      
       // Fetch profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -50,8 +52,12 @@ const Settings = () => {
         .eq('id', user?.id)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        throw profileError;
+      }
 
+      console.log('Profile data:', profileData);
       setProfile({
         full_name: profileData.full_name || '',
         email: profileData.email || '',
@@ -65,9 +71,11 @@ const Settings = () => {
         .single();
 
       if (settingsError && settingsError.code !== 'PGRST116') {
+        console.error('Settings fetch error:', settingsError);
         throw settingsError;
       }
 
+      console.log('Settings data:', settingsData);
       if (settingsData) {
         setSettings({
           gemini_api_key: settingsData.gemini_api_key || '',
@@ -108,17 +116,58 @@ const Settings = () => {
       return;
     }
 
+    if (!user?.id) {
+      toast.error('User not authenticated');
+      return;
+    }
+
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('user_settings')
-        .upsert({
-          user_id: user?.id,
-          gemini_api_key: settings.gemini_api_key,
-          updated_at: new Date().toISOString(),
-        });
+      console.log('Saving settings for user ID:', user.id);
+      console.log('API key length:', settings.gemini_api_key.length);
 
-      if (error) throw error;
+      // First, check if a record exists
+      const { data: existingData, error: checkError } = await supabase
+        .from('user_settings')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing settings:', checkError);
+        throw checkError;
+      }
+
+      console.log('Existing settings record:', existingData);
+
+      let result;
+      if (existingData) {
+        // Update existing record
+        result = await supabase
+          .from('user_settings')
+          .update({
+            gemini_api_key: settings.gemini_api_key,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id);
+      } else {
+        // Insert new record
+        result = await supabase
+          .from('user_settings')
+          .insert({
+            user_id: user.id,
+            gemini_api_key: settings.gemini_api_key,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+      }
+
+      if (result.error) {
+        console.error('Error saving settings:', result.error);
+        throw result.error;
+      }
+
+      console.log('Settings saved successfully');
       toast.success('API key saved successfully! You can now generate flashcards.');
       
       // Redirect to dashboard after successful save
