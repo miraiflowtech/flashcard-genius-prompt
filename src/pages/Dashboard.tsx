@@ -8,11 +8,23 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import FlashcardGenerator from '@/components/FlashcardGenerator';
+import StudyMode from '@/components/StudyMode';
+
+interface Flashcard {
+  id: string;
+  front: string;
+  back: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  tags: string[];
+  category: string;
+}
 
 const Dashboard = () => {
   const [hasGeminiKey, setHasGeminiKey] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showStudyMode, setShowStudyMode] = useState(false);
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -45,6 +57,22 @@ const Dashboard = () => {
     navigate('/');
   };
 
+  const handleFlashcardsGenerated = (generatedFlashcards: Flashcard[]) => {
+    console.log('Flashcards generated:', generatedFlashcards);
+    setFlashcards(generatedFlashcards);
+    setShowGenerator(false);
+    setShowStudyMode(true);
+  };
+
+  const handleBackFromStudyMode = () => {
+    setShowStudyMode(false);
+    setFlashcards([]);
+  };
+
+  const handleBackFromGenerator = () => {
+    setShowGenerator(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
@@ -56,11 +84,20 @@ const Dashboard = () => {
     );
   }
 
+  if (showStudyMode && flashcards.length > 0) {
+    return (
+      <StudyMode 
+        flashcards={flashcards}
+        onBack={handleBackFromStudyMode}
+      />
+    );
+  }
+
   if (showGenerator && hasGeminiKey) {
     return (
       <FlashcardGenerator 
-        onBack={() => setShowGenerator(false)}
-        onFlashcardsGenerated={() => {}}
+        onBack={handleBackFromGenerator}
+        onFlashcardsGenerated={handleFlashcardsGenerated}
       />
     );
   }
